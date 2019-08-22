@@ -1002,33 +1002,11 @@ void DudeStarRX::readyReadREF()
 			s = "RO";
 		}
 		status_txt->setText(s + " Host: " + host + ":" + QString::number(port) + " Ping: " + QString::number(ping_cnt++));
-		if(ping_cnt % 60){
-			out[0] = 0x03;
-			out[1] = 0x60;
-			out[2] = 0x00;
-			out.resize(3);
-			udp->writeDatagram(out, address, port);
-		}
-		else{
-			out[0] = 0x1c;
-			out[1] = 0xc0;
-			out[2] = 0x04;
-			out[3] = 0x00;
-			out.append(callsign.toUpper().toLocal8Bit().data(), 6);
-			out[10] = 0x00;
-			out[11] = 0x00;
-			out[12] = 0x00;
-			out[13] = 0x00;
-			out[14] = 0x00;
-			out[15] = 0x00;
-			out[16] = 0x00;
-			out[17] = 0x00;
-			out[18] = 0x00;
-			out[19] = 0x00;
-			out.append("HS000000", 8);
-			out.resize(28);
-			udp->writeDatagram(out, address, port);
-		}
+		out[0] = 0x03;
+		out[1] = 0x60;
+		out[2] = 0x00;
+		out.resize(3);
+		udp->writeDatagram(out, address, port);
 	}
 	if((connect_status == CONNECTING) && (buf.size() == 0x08)){
 		if((buf.data()[4] == 0x4f) && (buf.data()[5] == 0x4b) && (buf.data()[6] == 0x52)){ // OKRW/OKRO response
