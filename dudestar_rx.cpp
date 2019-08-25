@@ -21,7 +21,8 @@
 #include <QMessageBox>
 #include <QFileDialog>
 
-//#define DEBUG
+#define DEBUG
+//define DEBUG_YSF
 
 DudeStarRX::DudeStarRX(QWidget *parent) :
 	QMainWindow(parent),
@@ -645,7 +646,7 @@ void DudeStarRX::readyReadYSF()
 	char ysftag[11], ysfsrc[11], ysfdst[11];
 	buf.resize(udp->pendingDatagramSize());
 	udp->readDatagram(buf.data(), buf.size(), &sender, &senderPort);
-#ifdef DEBUG
+#ifdef DEBUG_YSF
 	fprintf(stderr, "RECV: ");
 	for(int i = 0; i < buf.size(); ++i){
 		fprintf(stderr, "%02x ", (unsigned char)buf.data()[i]);

@@ -448,6 +448,7 @@ void DSDYSF::processCSD1(unsigned char *dchBytes)
         m_destId[5] = '\0';
         memcpy(m_srcId, &dchBytes[5], 5);
         m_destId[5] = '\0';
+        std::cerr << "DSDYSF::processCSD1: CM: 1 Dest: " << m_destId << " Src: " << m_srcId << std::endl;
     }
     else
     {
@@ -455,7 +456,7 @@ void DSDYSF::processCSD1(unsigned char *dchBytes)
         m_dest[10] = '\0';
         memcpy(m_src, &dchBytes[10], 10);
         m_src[10] = '\0';
-		std::cerr << "DSDYSF::processCSD1: Dest: " << m_dest << " Src: " << m_src << std::endl;
+		std::cerr << "DSDYSF::processCSD1: CM: 0 Dest: " << m_dest << " Src: " << m_src << std::endl;
     }
 }
 
