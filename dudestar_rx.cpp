@@ -991,7 +991,7 @@ void DudeStarRX::readyReadREF()
 		out[17] = 0x00;
 		out[18] = 0x00;
 		out[19] = 0x00;
-		out.append("DV123456", 8);
+		out.append("HS000000", 8);
 		udp->writeDatagram(out, address, port);
 	}
 	if(buf.size() == 3){ //2 way keep alive ping
