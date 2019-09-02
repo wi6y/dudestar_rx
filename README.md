@@ -24,6 +24,15 @@ make
 ```
 qmake may have a different name on your distribution i.e. on Fedora it's called qmake-qt5
 
+Notes for building/running Debian/Raspbian:  In addition to the Linux build requirements, there are some additional requirements for running this QT application in order for the audio devices to be correctly detected:
+```
+sudo apt-get install libqt5multimedia5-plugins
+```
+And if pulseaudio is not currently installed:
+```
+sudo apt-get install pulseaudio
+```
+
 # Builds
 There is currently a 32-bit Windows executable available in the builds directory.  QT and mbelib are statically linked, no dependencies are required.
 There is also an Android build called DROID-Star at the Play Store as a beta release.
