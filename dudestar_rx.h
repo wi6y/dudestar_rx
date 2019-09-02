@@ -45,19 +45,28 @@ private:
 	enum{
 		DISCONNECTED,
 		CONNECTING,
+		DMR_AUTH,
+		DMR_CONF,
+		DMR_OPTS,
 		CONNECTED_RW,
 		CONNECTED_RO
 	} connect_status;
+
 	QUrl hosts_site;
 	QNetworkAccessManager qnam;
 	QNetworkReply *reply;
 	bool httpRequestAborted;
 	QString host;
+	QString hostname;
 	int port;
 	QHostAddress address;
 	QString callsign;
 	QString serial;
+	QString dmr_password;
 	char module;
+	uint32_t dmrid;
+	uint32_t dmr_srcid;
+	uint32_t dmr_destid;
 	QString protocol;
 	uint64_t ping_cnt;
 	MBEDecoder *mbe;
@@ -68,11 +77,13 @@ private:
 	QTimer *audiotimer;
 	QTimer *ysftimer;
 	QTimer *ping_timer;
+	QTimer *dmr_header_timer;
 	QString config_path;
 	QString hosts_filename;
 	QLabel *status_txt;
 	QQueue<unsigned char> audioq;
 	QQueue<unsigned char> ysfq;
+	QMap<uint32_t, QString> dmrids;
 
 	const unsigned char header[5] = {0x80,0x44,0x53,0x56,0x54}; //DVSI packet header
 private slots:
@@ -84,6 +95,7 @@ private slots:
 	void readyReadDCS();
 	void readyReadXLX();
 	void readyReadYSF();
+	void readyReadDMR();
 	void disconnect_from_host();
 	void handleStateChanged(QAudio::State);
 	void hostname_lookup(QHostInfo);
@@ -93,12 +105,17 @@ private slots:
 	void process_dcs_hosts();
 	void process_xrf_hosts();
 	void process_ysf_hosts();
+	void process_dmr_hosts();
+	void process_dmr_ids();
 	void process_mode_change(const QString &);
 	void process_settings();
 	void process_ping();
 	void load_hosts_file();
+	void tx_dmr_header();
 	void start_request(QString);
 	void http_finished(QNetworkReply *reply);
+	void AppendVoiceLCToBuffer(QByteArray& buffer, uint32_t uiSrcId, uint32_t uiDstId) const;
+
 };
 
 #endif // DUDESTARRX_H

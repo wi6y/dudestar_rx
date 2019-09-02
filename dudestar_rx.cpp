@@ -17,10 +17,18 @@
 
 #include "dudestar_rx.h"
 #include "ui_dudestar_rx.h"
+#include "SHA256.h"
+#include "crs129.h"
+#include "cbptc19696.h"
+#include "cgolay2087.h"
 #include <iostream>
 #include <QMessageBox>
 #include <QFileDialog>
 
+#define LOBYTE(w)				((uint8_t)(uint16_t)(w & 0x00FF))
+#define HIBYTE(w)				((uint8_t)((((uint16_t)(w)) >> 8) & 0xFF))
+#define LOWORD(dw)				((uint16_t)(uint32_t)(dw & 0x0000FFFF))
+#define HIWORD(dw)				((uint16_t)((((uint32_t)(dw)) >> 16) & 0xFFFF))
 #define DEBUG
 //define DEBUG_YSF
 
@@ -89,6 +97,7 @@ DudeStarRX::~DudeStarRX()
 	stream << "HOST:" << ui->hostCombo->currentText() << endl;
 	stream << "MODULE:" << ui->comboMod->currentText() << endl;
 	stream << "CALLSIGN:" << ui->callsignEdit->text() << endl;
+	stream << "DMRTGID:" << ui->dmrtgEdit->text() << endl;
 	f.close();
 	delete ui;
 }
@@ -126,6 +135,7 @@ void DudeStarRX::init_gui()
 	ui->modeCombo->addItem("DCS");
 	ui->modeCombo->addItem("XRF");
 	ui->modeCombo->addItem("YSF");
+	ui->modeCombo->addItem("DMR");
 	connect(ui->modeCombo, SIGNAL(currentTextChanged(const QString &)), this, SLOT(process_mode_change(const QString &)));
 
 	for(char m = 0x41; m < 0x5b; ++m){
@@ -133,6 +143,7 @@ void DudeStarRX::init_gui()
 	}
 
 	ui->hostCombo->setEditable(true);
+	ui->dmrtgEdit->setEnabled(false);
 }
 
 void DudeStarRX::start_request(QString f)
@@ -175,6 +186,12 @@ void DudeStarRX::http_finished(QNetworkReply *reply)
 		else if(filename == "YSFHosts.txt"){
 			process_ysf_hosts();
 		}
+		else if(filename == "DMRHosts.txt"){
+			process_dmr_hosts();
+		}
+		else if(filename == "dmrids.txt"){
+			process_dmr_ids();
+		}
     }
 }
 
@@ -198,6 +215,7 @@ void DudeStarRX::process_mode_change(const QString &m)
 	if(m == "REF"){
 		process_ref_hosts();
 		ui->comboMod->setEnabled(true);
+		ui->dmrtgEdit->setEnabled(false);
 		ui->label_1->setText("MYCALL");
 		ui->label_2->setText("URCALL");
 		ui->label_3->setText("RPTR1");
@@ -208,6 +226,7 @@ void DudeStarRX::process_mode_change(const QString &m)
 	if(m == "DCS"){
 		process_dcs_hosts();
 		ui->comboMod->setEnabled(true);
+		ui->dmrtgEdit->setEnabled(false);
 		ui->label_1->setText("MYCALL");
 		ui->label_2->setText("URCALL");
 		ui->label_3->setText("RPTR1");
@@ -218,6 +237,7 @@ void DudeStarRX::process_mode_change(const QString &m)
 	if(m == "XRF"){
 		process_xrf_hosts();
 		ui->comboMod->setEnabled(true);
+		ui->dmrtgEdit->setEnabled(false);
 		ui->label_1->setText("MYCALL");
 		ui->label_2->setText("URCALL");
 		ui->label_3->setText("RPTR1");
@@ -228,12 +248,25 @@ void DudeStarRX::process_mode_change(const QString &m)
 	else if(m == "YSF"){
 		process_ysf_hosts();
 		ui->comboMod->setEnabled(false);
+		ui->dmrtgEdit->setEnabled(false);
 		ui->label_1->setText("Gateway");
 		ui->label_2->setText("Callsign");
 		ui->label_3->setText("Dest");
 		ui->label_4->setText("Type");
 		ui->label_5->setText("Path");
 		ui->label_6->setText("Frame#");
+	}
+	else if(m == "DMR"){
+		process_dmr_hosts();
+		process_dmr_ids();
+		ui->comboMod->setEnabled(false);
+		ui->dmrtgEdit->setEnabled(true);
+		ui->label_1->setText("Callsign");
+		ui->label_2->setText("SrcID");
+		ui->label_3->setText("DestID");
+		ui->label_4->setText("GWID");
+		ui->label_5->setText("Seq#");
+		ui->label_6->setText("");
 	}
 }
 
@@ -360,6 +393,71 @@ void DudeStarRX::process_ysf_hosts()
 	}
 }
 
+void DudeStarRX::process_dmr_hosts()
+{
+	if(!QDir(config_path).exists()){
+		QDir().mkdir(config_path);
+	}
+
+	QFileInfo check_file(config_path + "/DMRHosts.txt");
+	if(check_file.exists() && check_file.isFile()){
+		QFile f(config_path + "/DMRHosts.txt");
+		if(f.open(QIODevice::ReadOnly)){
+			ui->hostCombo->clear();
+			while(!f.atEnd()){
+				QString l = f.readLine();
+				if(l.at(0) == '#'){
+					continue;
+				}
+				QStringList ll = l.simplified().split(' ');
+				if(ll.size() == 5){
+					//qDebug() << ll.at(0).simplified() << " " <<  ll.at(2) + ":" + ll.at(4);
+					ui->hostCombo->addItem(ll.at(0).simplified(), ll.at(2) + ":" + ll.at(4) + ":" + ll.at(3));
+				}
+			}
+		}
+		f.close();
+	}
+	else{
+		QMessageBox::StandardButton reply;
+		reply = QMessageBox::question(this, "No DMRHosts file", "No DMRHosts file found, download?", QMessageBox::Yes|QMessageBox::No);
+		if (reply == QMessageBox::Yes) {
+			start_request("/DMRHosts.txt");
+		}
+	}
+}
+
+void DudeStarRX::process_dmr_ids()
+{
+	if(!QDir(config_path).exists()){
+		QDir().mkdir(config_path);
+	}
+
+	QFileInfo check_file(config_path + "/dmrids.txt");
+	if(check_file.exists() && check_file.isFile()){
+		QFile f(config_path + "/dmrids.txt");
+		if(f.open(QIODevice::ReadOnly)){
+			while(!f.atEnd()){
+				QString l = f.readLine();
+				if(l.at(0) == '#'){
+					continue;
+				}
+				QStringList ll = l.simplified().split(';');
+				//qDebug() << ll.at(0).simplified() << " " <<  ll.at(2) + ":" + ll.at(4);
+				dmrids[ll.at(0).toUInt()] = ll.at(1);
+			}
+		}
+		f.close();
+	}
+	else{
+		QMessageBox::StandardButton reply;
+		reply = QMessageBox::question(this, "No DMR ID file", "No DMR ID file found, download?", QMessageBox::Yes|QMessageBox::No);
+		if (reply == QMessageBox::Yes) {
+			start_request("/dmrids.txt");
+		}
+	}
+}
+
 void DudeStarRX::process_settings()
 {
 	QFileInfo check_file(config_path + "/settings.conf");
@@ -384,6 +482,9 @@ void DudeStarRX::process_settings()
 					else if(i == 3){
 						process_ysf_hosts();
 					}
+					else if(i == 4){
+						process_dmr_hosts();
+					}
 				}
 
 				if(sl.at(0) == "HOST"){
@@ -395,6 +496,9 @@ void DudeStarRX::process_settings()
 				}
 				if(sl.at(0) == "CALLSIGN"){
 					ui->callsignEdit->setText(sl.at(1).simplified());
+				}
+				if(sl.at(0) == "DMRTGID"){
+					ui->dmrtgEdit->setText(sl.at(1).simplified());
 				}
 			}
 		}
@@ -413,7 +517,6 @@ void DudeStarRX::disconnect_from_host()
 		d[2] = 0x18;
 		d[3] = 0x00;
 		d[4] = 0x00;
-		ui->comboMod->setEnabled(true);
 	}
 	if(protocol == "XRF"){
 		d.append(callsign);
@@ -421,7 +524,6 @@ void DudeStarRX::disconnect_from_host()
 		d[8] = module;
 		d[9] = ' ';
 		d[10] = 0;
-		ui->comboMod->setEnabled(true);
 	}
 	if(protocol == "DCS"){
 		d.append(callsign);
@@ -429,17 +531,16 @@ void DudeStarRX::disconnect_from_host()
 		d[8] = module;
 		d[9] = ' ';
 		d[10] = 0;
-		ui->comboMod->setEnabled(true);
 	}
 	else if(protocol == "XLX"){
 		d[0] = 'R';
 		d[1] = 'P';
 		d[2] = 'T';
 		d[3] = 'L';
-		d[7] = 0xd2;
-		d[6] = 0xb4;
-		d[5] = 0x2f;
-		d[4] = 0x00;
+		d[4] = (dmrid >> 24) & 0xff;
+		d[5] = (dmrid >> 16) & 0xff;
+		d[6] = (dmrid >> 8) & 0xff;
+		d[7] = (dmrid >> 0) & 0xff;
 		ping_timer->stop();
 
 	}
@@ -451,6 +552,21 @@ void DudeStarRX::disconnect_from_host()
 		d.append(callsign);
 		d.append(5, ' ');
 		ping_timer->stop();
+	}
+	else if(protocol == "DMR"){
+		d[0] = 'R';
+		d[1] = 'P';
+		d[2] = 'T';
+		d[3] = 'C';
+		d[4] = 'L';
+		d[5] = (dmrid >> 24) & 0xff;
+		d[6] = (dmrid >> 16) & 0xff;
+		d[7] = (dmrid >> 8) & 0xff;
+		d[8] = (dmrid >> 0) & 0xff;
+		ui->dmrtgEdit->setEnabled(true);
+		dmr_header_timer->stop();
+		ping_timer->stop();
+
 	}
 	udp->writeDatagram(d, QHostAddress(host), port);
 	//disconnect(udp, SIGNAL(readyRead()));
@@ -476,6 +592,7 @@ void DudeStarRX::process_connect()
 		status_txt->setText("Not connected");
 	}
 	else{
+		hostname = ui->hostCombo->currentText().simplified();
 		QStringList sl = ui->hostCombo->currentData().toString().simplified().split(':');
 		connect_status = CONNECTING;
 		status_txt->setText("Connecting...");
@@ -486,6 +603,10 @@ void DudeStarRX::process_connect()
 		callsign = ui->callsignEdit->text();
 		module = ui->comboMod->currentText().toStdString()[0];
 		protocol = ui->modeCombo->currentText();
+		if(protocol == "DMR"){
+			dmrid = dmrids.key(callsign);
+			dmr_password = sl.at(2).simplified();
+		}
 		QHostInfo::lookupHost(host, this, SLOT(hostname_lookup(QHostInfo)));
 		audiodev = audio->start();
 	}
@@ -521,10 +642,10 @@ void DudeStarRX::hostname_lookup(QHostInfo i)
 		d[1] = 'P';
 		d[2] = 'T';
 		d[3] = 'L';
-		d[7] = 0xd2;
-		d[6] = 0xb4;
-		d[5] = 0x2f;
-		d[4] = 0x00;
+		d[4] = (dmrid >> 24) & 0xff;
+		d[5] = (dmrid >> 16) & 0xff;
+		d[6] = (dmrid >> 8) & 0xff;
+		d[7] = (dmrid >> 0) & 0xff;
 	}
 	else if(protocol == "YSF"){
 		d[0] = 'Y';
@@ -533,6 +654,16 @@ void DudeStarRX::hostname_lookup(QHostInfo i)
 		d[3] = 'P';
 		d.append(callsign);
 		d.append(5, ' ');
+	}
+	else if(protocol == "DMR"){
+		d[0] = 'R';
+		d[1] = 'P';
+		d[2] = 'T';
+		d[3] = 'L';
+		d[4] = (dmrid >> 24) & 0xff;
+		d[5] = (dmrid >> 16) & 0xff;
+		d[6] = (dmrid >> 8) & 0xff;
+		d[7] = (dmrid >> 0) & 0xff;
 	}
 	if (!i.addresses().isEmpty()) {
 		address = i.addresses().first();
@@ -551,15 +682,115 @@ void DudeStarRX::process_audio()
 	if(audioq.size() < 9){
 		return;
 	}
+	if(!mbe){
+		return;
+	}
 
 	for(int i = 0; i < 9; ++i){
 		d[i] = audioq.dequeue();
 	}
-
-	mbe->process_dstar(d);
+	if(protocol == "DMR"){
+		mbe->process_dmr(d);
+	}
+	else{
+		mbe->process_dstar(d);
+	}
 	audioSamples = mbe->getAudio(nbAudioSamples);
 	audiodev->write((const char *) audioSamples, sizeof(short) * nbAudioSamples);
 	mbe->resetAudio();
+}
+
+void DudeStarRX::AppendVoiceLCToBuffer(QByteArray& buffer, uint32_t uiSrcId, uint32_t uiDstId) const
+{
+	uint8_t g_DmrSyncBSData[]     = { 0x0D,0xFF,0x57,0xD7,0x5D,0xF5,0xD0 };
+	uint8_t g_DmrSyncMSData[]     = { 0x0D,0x5D,0x7F,0x77,0xFD,0x75,0x70 };
+	uint8_t payload[33];
+
+	// fill payload
+	CBPTC19696 bptc;
+	::memset(payload, 0, sizeof(payload));
+	// LC data
+	uint8_t lc[12];
+	{
+		::memset(lc, 0, sizeof(lc));
+		lc[3] = (uint8_t)LOBYTE(HIWORD(uiDstId));
+		lc[4] = (uint8_t)HIBYTE(LOWORD(uiDstId));
+		lc[5] = (uint8_t)LOBYTE(LOWORD(uiDstId));
+		// uiSrcId
+		lc[6] = (uint8_t)LOBYTE(HIWORD(uiSrcId));
+		lc[7] = (uint8_t)HIBYTE(LOWORD(uiSrcId));
+		lc[8] = (uint8_t)LOBYTE(LOWORD(uiSrcId));
+		// parity
+		uint8_t parity[4];
+		CRS129::encode(lc, 9, parity);
+		lc[9]  = parity[2] ^ 0x96;
+		lc[10] = parity[1] ^ 0x96;
+		lc[11] = parity[0] ^ 0x96;
+	}
+	// sync
+	::memcpy(payload+13, g_DmrSyncMSData, sizeof(g_DmrSyncMSData));
+	// slot type
+	{
+		// slot type
+		uint8_t slottype[3];
+		::memset(slottype, 0, sizeof(slottype));
+		slottype[0]  = (1 << 4) & 0xF0;
+		slottype[0] |= (1  << 0) & 0x0FU;
+		CGolay2087::encode(slottype);
+		payload[12U] = (payload[12U] & 0xC0U) | ((slottype[0U] >> 2) & 0x3FU);
+		payload[13U] = (payload[13U] & 0x0FU) | ((slottype[0U] << 6) & 0xC0U) | ((slottype[1U] >> 2) & 0x30U);
+		payload[19U] = (payload[19U] & 0xF0U) | ((slottype[1U] >> 2) & 0x0FU);
+		payload[20U] = (payload[20U] & 0x03U) | ((slottype[1U] << 6) & 0xC0U) | ((slottype[2U] >> 2) & 0x3CU);
+
+	}
+	// and encode
+	bptc.encode(lc, payload);
+
+	// and append
+	buffer.append((char *)payload, sizeof(payload));
+}
+
+void DudeStarRX::tx_dmr_header()
+{
+	QByteArray out;
+	dmr_destid = ui->dmrtgEdit->text().toInt();
+	unsigned char dmrheader_tx[55] = {
+		0x44, 0x4D, 0x52, 0x44, 0x00, 0x2F, 0xB4, 0xD2, 0x00, 0x00, 0x5B, 0x00, 0x2F, 0xB4, 0xD2, 0xA1,
+		0xE9, 0xF5, 0x3A, 0x3A, 0x02, 0x46, 0x0C, 0x3C, 0x1E, 0xA4, 0x12, 0x20, 0x5F, 0x20, 0x04, 0x40,
+		0x44, 0x6D, 0x5D, 0x7F, 0x77, 0xFD, 0x75, 0x7E, 0x33, 0x00, 0x00, 0xD0, 0x31, 0x20, 0x36, 0x40,
+		0x1D, 0x81, 0xE8, 0x03, 0x84, 0x00, 0x00
+	};
+	//out.append((char *)dmrheader_tx, 55);
+
+	out.append("DMRD", 4);
+	out.append('\0');
+	out[5] = (dmrid >> 16) & 0xff;
+	out[6] = (dmrid >> 8) & 0xff;
+	out[7] = (dmrid >> 0) & 0xff;
+	out[8] = (dmr_destid >> 16) & 0xff;
+	out[9] = (dmr_destid >> 8) & 0xff;
+	out[10] = (dmr_destid >> 0) & 0xff;
+	out[11] = (dmrid >> 24) & 0xff;
+	out[12] = (dmrid >> 16) & 0xff;
+	out[13] = (dmrid >> 8) & 0xff;
+	out[14] = (dmrid >> 0) & 0xff;
+	out[15] = 0xa1;
+	out[16] = 0x0e;
+	out[17] = 0x00;
+	out[18] = 0x00;
+	out[19] = 0x00;
+	AppendVoiceLCToBuffer(out, dmrid, dmr_destid);
+	out.append(2, 0);
+
+	udp->writeDatagram(out, address, port);
+
+	fprintf(stderr, "SEND: ");
+	for(int i = 0; i < out.size(); ++i){
+		fprintf(stderr, "%02x ", (unsigned char)out.data()[i]);
+	}
+	fprintf(stderr, "\n");
+	fflush(stderr);
+
 }
 
 void DudeStarRX::process_ysf_data()
@@ -612,6 +843,9 @@ void DudeStarRX::readyRead()
 	else if (protocol == "YSF"){
 		readyReadYSF();
 	}
+	else if (protocol == "DMR"){
+		readyReadDMR();
+	}
 }
 
 void DudeStarRX::process_ping()
@@ -633,6 +867,15 @@ void DudeStarRX::process_ping()
 		out[3] = 'P';
 		out.append(callsign);
 		out.append(5, ' ');
+	}
+	else if(protocol == "DMR"){
+		char tag[] = { 'R','P','T','P','I','N','G' };
+		out.clear();
+		out.append(tag, 7);
+		out[10] = 0xd2;
+		out[9] = 0xb4;
+		out[8] = 0x2f;
+		out[7] = 0x00;
 	}
 	udp->writeDatagram(out, address, port);
 }
@@ -681,6 +924,129 @@ void DudeStarRX::readyReadYSF()
 	}
 }
 
+void DudeStarRX::readyReadDMR()
+{
+	QByteArray buf;
+	QByteArray in;
+	QByteArray out;
+	QHostAddress sender;
+	quint16 senderPort;
+	CSHA256 sha256;
+	char buffer[400U];
+
+	static bool first_tx = false;
+	buf.resize(udp->pendingDatagramSize());
+	udp->readDatagram(buf.data(), buf.size(), &sender, &senderPort);
+#ifdef DEBUG
+	fprintf(stderr, "RECV: ");
+	for(int i = 0; i < buf.size(); ++i){
+		fprintf(stderr, "%02x ", (unsigned char)buf.data()[i]);
+	}
+	fprintf(stderr, "\n");
+	fflush(stderr);
+#endif
+	if((buf.size() >= 10) && (::memcmp(buf.data(), "RPTACK", 6U) == 0)){
+		switch(connect_status){
+		case CONNECTING:
+			connect_status = DMR_AUTH;
+			in[0] = buf[6];
+			in[1] = buf[7];
+			in[2] = buf[8];
+			in[3] = buf[9];
+			in.append(dmr_password);
+
+			out.clear();
+			out.resize(40);
+			out[0] = 'R';
+			out[1] = 'P';
+			out[2] = 'T';
+			out[3] = 'K';
+			out[4] = (dmrid >> 24) & 0xff;
+			out[5] = (dmrid >> 16) & 0xff;
+			out[6] = (dmrid >> 8) & 0xff;
+			out[7] = (dmrid >> 0) & 0xff;
+
+			sha256.buffer((unsigned char *)in.data(), (unsigned int)(dmr_password.size() + sizeof(uint32_t)), (unsigned char *)out.data() + 8U);
+			break;
+		case DMR_AUTH:
+			out.clear();
+			buffer[0] = 'R';
+			buffer[1] = 'P';
+			buffer[2] = 'T';
+			buffer[3] = 'C';
+			buffer[4] = (dmrid >> 24) & 0xff;
+			buffer[5] = (dmrid >> 16) & 0xff;
+			buffer[6] = (dmrid >> 8) & 0xff;
+			buffer[7] = (dmrid >> 0) & 0xff;
+
+			connect_status = DMR_CONF;
+			char latitude[20U];
+			::sprintf(latitude, "%08f", 50.0f);
+
+			char longitude[20U];
+			::sprintf(longitude, "%09f", 3.0f);
+			::sprintf(buffer + 8U, "%-8.8s%09u%09u%02u%02u%8.8s%9.9s%03d%-20.20s%-19.19s%c%-124.124s%-40.40s%-40.40s", callsign.toStdString().c_str(),
+					438800000, 438800000, 1, 1, latitude, longitude, 0, "Detroit","USA", '2', "www.dudetronics.com", "20190131", "MMDVM");
+			out.append(buffer, 302);
+			break;
+		case DMR_CONF:
+			connect_status = CONNECTED_RW;
+			mbe = new MBEDecoder();
+			dmr_header_timer = new QTimer();
+			connect(dmr_header_timer, SIGNAL(timeout()), this, SLOT(tx_dmr_header()));
+			ui->connectButton->setText("Disconnect");
+			ui->connectButton->setEnabled(true);
+			ui->modeCombo->setEnabled(false);
+			ui->hostCombo->setEnabled(false);
+			ui->callsignEdit->setEnabled(false);
+			ui->dmrtgEdit->setEnabled(false);
+			ping_timer->start(5000);
+			tx_dmr_header();
+			dmr_header_timer->start(300000);
+			status_txt->setText(" Host: " + host + ":" + QString::number(port) + " Ping: " + QString::number(ping_cnt));
+			break;
+		default:
+			break;
+		}
+		udp->writeDatagram(out, address, port);
+	}
+	if((buf.size() == 11) && (::memcmp(buf.data(), "MSTPONG", 7U) == 0)){
+		status_txt->setText(" Host: " + host + ":" + QString::number(port) + " Ping: " + QString::number(ping_cnt++));
+	}
+	if((buf.size() == 55) && (::memcmp(buf.data(), "DMRD", 4U) == 0) && ((uint8_t)buf.data()[15] <= 0x90)){
+		uint8_t dmrframe[33];
+		uint8_t dmr3ambe[27];
+		uint8_t dmrsync[7];
+		// get the 33 bytes ambe
+		memcpy(dmrframe, &(buf.data()[20]), 33);
+		// extract the 3 ambe frames
+		memcpy(dmr3ambe, dmrframe, 14);
+		dmr3ambe[13] &= 0xF0;
+		dmr3ambe[13] |= (dmrframe[19] & 0x0F);
+		memcpy(&dmr3ambe[14], &dmrframe[20], 14);
+		// extract sync
+		dmrsync[0] = dmrframe[13] & 0x0F;
+		::memcpy(&dmrsync[1], &dmrframe[14], 5);
+		dmrsync[6] = dmrframe[19] & 0xF0;
+		for(int i = 0; i < 27; ++i){
+			audioq.enqueue(dmr3ambe[i]);
+		}
+		uint32_t id = (uint32_t)((buf.data()[5] << 16) | ((buf.data()[6] << 8) & 0xff00) | (buf.data()[7]) & 0xff);
+		ui->mycall->setText(dmrids[id]);
+		ui->urcall->setText(QString::number(id));
+		ui->rptr1->setText(QString::number((uint32_t)((buf.data()[8] << 16) | ((buf.data()[9] << 8) & 0xff00) | (buf.data()[10]) & 0xff)));
+		ui->rptr2->setText(QString::number((uint32_t)((buf.data()[11] << 24) | ((buf.data()[12] << 16) & 0xff0000) | ((buf.data()[13] << 8) & 0xff00) | (buf.data()[14]) & 0xff)));
+		ui->streamid->setText(QString::number(buf.data()[4] & 0xff, 16));
+	}
+
+	fprintf(stderr, "SEND: ");
+	for(int i = 0; i < out.size(); ++i){
+		fprintf(stderr, "%02x ", (unsigned char)out.data()[i]);
+	}
+	fprintf(stderr, "\n");
+	fflush(stderr);
+}
+
 void DudeStarRX::readyReadXLX()
 {
 	QByteArray buf;
@@ -704,10 +1070,10 @@ void DudeStarRX::readyReadXLX()
 		out[1] = 'P';
 		out[2] = 'T';
 		out[3] = 'K';
-		out[7] = 0xd2;
-		out[6] = 0xb4;
-		out[5] = 0x2f;
-		out[4] = 0x00;
+		out[4] = (dmrid >> 24) & 0xff;
+		out[5] = (dmrid >> 16) & 0xff;
+		out[6] = (dmrid >> 8) & 0xff;
+		out[7] = (dmrid >> 0) & 0xff;
 		udp->writeDatagram(out, address, port);
 	}
 	else if(buf.size() == 6){
@@ -1017,7 +1383,7 @@ void DudeStarRX::readyReadREF()
 			ui->modeCombo->setEnabled(false);
 			ui->hostCombo->setEnabled(false);
 			ui->callsignEdit->setEnabled(false);
-			ui->comboMod->setEnabled(false);
+			//ui->comboMod->setEnabled(false);
 			if(buf.data()[7] == 0x57){ //OKRW
 				connect_status = CONNECTED_RW;
 				status_txt->setText("RW connect to " + host);
@@ -1043,17 +1409,24 @@ void DudeStarRX::readyReadREF()
         std::cerr << "Module:streamid == " << (char)buf.data()[0x1b] << ":" << std::hex << (short)((buf.data()[14] << 8) | (buf.data()[15] & 0xff)) << std::endl;
     }
 #endif
-	if((buf.size() == 0x3a) && (!memcmp(buf.data()+1, header, 5)) && ((buf.data()[0x1b] == module) || (buf.data()[0x1b] == 'G')) ){ //58
-		streamid = (buf.data()[14] << 8) | (buf.data()[15] & 0xff);
+	if((buf.size() == 0x3a) && (!memcmp(buf.data()+1, header, 5)) ){
 		memcpy(rptr2, buf.data() + 20, 8); rptr1[8] = '\0';
 		memcpy(rptr1, buf.data() + 28, 8); rptr2[8] = '\0';
 		memcpy(urcall, buf.data() + 36, 8); urcall[8] = '\0';
 		memcpy(mycall, buf.data() + 44, 8); mycall[8] = '\0';
-		ui->mycall->setText(QString(mycall));
-		ui->urcall->setText(QString(urcall));
-		ui->rptr1->setText(QString(rptr1));
-		ui->rptr2->setText(QString(rptr2));
-		ui->streamid->setText(QString::number(streamid, 16));
+		module = ui->comboMod->currentText().toStdString()[0];
+		QString h = hostname + " " + module;
+		if( (QString(rptr2).simplified() == h.simplified()) || (QString(rptr1).simplified() == h.simplified()) ){
+			streamid = (buf.data()[14] << 8) | (buf.data()[15] & 0xff);
+			ui->mycall->setText(QString(mycall));
+			ui->urcall->setText(QString(urcall));
+			ui->rptr1->setText(QString(rptr1));
+			ui->rptr2->setText(QString(rptr2));
+			ui->streamid->setText(QString::number(streamid, 16));
+		}
+		else{
+			streamid = 0;
+		}
 	}
 	if((buf.size() == 0x1d) && (!memcmp(buf.data()+1, header, 5)) ){ //29
 		//for(int i = 0; i < buf.size(); ++i){
@@ -1122,6 +1495,10 @@ void DudeStarRX::readyReadREF()
 		}
 	}
 	if(buf.size() == 0x20){ //32
+		s = (buf.data()[14] << 8) | (buf.data()[15] & 0xff);
+		if(s != streamid){
+			return;
+		}
 		ui->streamid->setText("Stream complete");
 		ui->usertxt->clear();
 	}

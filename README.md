@@ -1,7 +1,7 @@
 # DUDE-Star RX
-Software monitor of D-STAR and Fusion YSF reflectors and repeaters/gateways over UDP
+Software monitor of D-STAR, DMR, and Fusion YSF reflectors and repeaters/gateways over UDP
 
-This software connects to D-STAR and Fusion reflectors and gateways/repeaters over UDP.  Decoding of the audio is done via the mbelib C library and DSDcc C++ library.  Mbelib can be found here:
+This software connects to D-STAR, DMR and Fusion reflectors and gateways/repeaters over UDP.  Decoding of the audio is done via the mbelib C library and DSDcc C++ library.  Mbelib can be found here:
 
 https://github.com/szechyjs/mbelib
 
@@ -9,7 +9,10 @@ The relevent portions of the DSDcc library are included, with the modifications 
 
 # Usage
 Host/Mod: Select the desired host and module (for D-STAR) from the selections.
-Callsign:  Enter your amateur radio callsign.  A valid license is required to use this software
+
+Callsign:  Enter your amateur radio callsign.  A valid license is required to use this software.  A valid DMR ID is required to connect to DMR servers.  Contact me via QRZ (AD8DP) if your DMR ID is not found.
+
+TG:  For DMR, enter the talkgroup ID number.  A very active TG for testing functionality on Brandmeister is 91 (Brandmeister Worldwide)
 
 Hit connect with these fields correctly populated and enjoy listening.
 

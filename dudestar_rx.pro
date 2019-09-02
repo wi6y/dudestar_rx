@@ -25,7 +25,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
+        SHA256.cpp \
+        cbptc19696.cpp \
+        cgolay2087.cpp \
+        chamming.cpp \
         crc.cpp \
+        crs129.cpp \
         dudestar_rx.cpp \
         fec.cpp \
         main.cpp \
@@ -37,7 +42,12 @@ SOURCES += \
         ysf.cpp
 
 HEADERS += \
+        SHA256.h \
+        cbptc19696.h \
+        cgolay2087.h \
+        chamming.h \
         crc.h \
+        crs129.h \
         dudestar_rx.h \
         fec.h \
         mbe.h \

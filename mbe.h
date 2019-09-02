@@ -28,6 +28,7 @@ public:
 
 	void initMbeParms();
 	void process_dstar(unsigned char *d);
+	void process_dmr(unsigned char *d);
 	//void process_ysf(char *d);
 	void process_frame(char ambe_fr[4][24]);
 	void processData(char ambe_data[49]);
@@ -87,9 +88,13 @@ private:
 	int m_upsample;            //!< upsampling factor
 	bool m_stereo;             //!< double each audio sample to produce L+R channels
 	unsigned char m_channels;  //!< when in stereo output to none (0) or only left (1), right (2) or both (3) channels
-	const int *w, *x;
+	const int *w, *x, *y, *z;
 	static const int dW[72];
 	static const int dX[72];
+	static const int rW[36];
+	static const int rX[36];
+	static const int rY[36];
+	static const int rZ[36];
 	char ambe_d[49];
 };
 
