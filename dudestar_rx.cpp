@@ -104,7 +104,7 @@ DudeStarRX::~DudeStarRX()
 
 void DudeStarRX::about()
 {
-	QMessageBox::about(this, tr("About DUDE-Star RX"), tr("DUDE-Star RX v0.10-beta\nCopyright (C) 2019 Doug McLain AD8DP\n\n"
+	QMessageBox::about(this, tr("About DUDE-Star RX"), tr("DUDE-Star RX v0.12-beta\nCopyright (C) 2019 Doug McLain AD8DP\n\n"
 															"This program is free software; you can redistribute it and/or modify"
 															" it under the terms of the GNU General Public License as published by "
 															"the Free Software Foundation; version 2.\n\nThis program is distributed"
