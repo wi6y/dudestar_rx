@@ -855,10 +855,10 @@ void DudeStarRX::process_ping()
 		char tag[] = { 'R','P','T','P','I','N','G' };
 		out.clear();
 		out.append(tag, 7);
-		out[10] = 0xd2;
-		out[9] = 0xb4;
-		out[8] = 0x2f;
-		out[7] = 0x00;
+		out[7] = (dmrid >> 24) & 0xff;
+		out[8] = (dmrid >> 16) & 0xff;
+		out[9] = (dmrid >> 8) & 0xff;
+		out[10] = (dmrid >> 0) & 0xff;
 	}
 	else if(protocol == "YSF"){
 		out[0] = 'Y';
@@ -872,10 +872,10 @@ void DudeStarRX::process_ping()
 		char tag[] = { 'R','P','T','P','I','N','G' };
 		out.clear();
 		out.append(tag, 7);
-		out[10] = 0xd2;
-		out[9] = 0xb4;
-		out[8] = 0x2f;
-		out[7] = 0x00;
+		out[7] = (dmrid >> 24) & 0xff;
+		out[8] = (dmrid >> 16) & 0xff;
+		out[9] = (dmrid >> 8) & 0xff;
+		out[10] = (dmrid >> 0) & 0xff;
 	}
 	udp->writeDatagram(out, address, port);
 }
@@ -945,7 +945,7 @@ void DudeStarRX::readyReadDMR()
 	fprintf(stderr, "\n");
 	fflush(stderr);
 #endif
-	if((buf.size() >= 10) && (::memcmp(buf.data(), "RPTACK", 6U) == 0)){
+	if((buf.size() == 10) && (::memcmp(buf.data(), "RPTACK", 6U) == 0)){
 		switch(connect_status){
 		case CONNECTING:
 			connect_status = DMR_AUTH;
