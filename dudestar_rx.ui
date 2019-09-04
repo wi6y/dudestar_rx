@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>358</width>
+    <width>506</width>
     <height>257</height>
    </rect>
   </property>
@@ -290,7 +290,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>358</width>
+     <width>506</width>
      <height>19</height>
     </rect>
    </property>
@@ -304,6 +304,7 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionDownload_DMR_ID_List"/>
     <addaction name="actionQuit"/>
    </widget>
    <addaction name="menuFile"/>
@@ -328,6 +329,11 @@
   <action name="actionDownload_hosts_file">
    <property name="text">
     <string>Download hosts file</string>
+   </property>
+  </action>
+  <action name="actionDownload_DMR_ID_List">
+   <property name="text">
+    <string>Download DMR ID List</string>
    </property>
   </action>
  </widget>

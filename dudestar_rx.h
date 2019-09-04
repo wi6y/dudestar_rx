@@ -114,6 +114,7 @@ private slots:
 	void tx_dmr_header();
 	void start_request(QString);
 	void http_finished(QNetworkReply *reply);
+	void download_dmrid_list();
 	void AppendVoiceLCToBuffer(QByteArray& buffer, uint32_t uiSrcId, uint32_t uiDstId) const;
 
 };

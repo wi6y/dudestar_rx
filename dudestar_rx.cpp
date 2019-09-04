@@ -121,7 +121,7 @@ void DudeStarRX::init_gui()
 	connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
 	connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(close()));
 	//connect(ui->actionLoad_hosts_file, SIGNAL(triggered()), this, SLOT(load_hosts_file()));
-	//connect(ui->actionDownload_hosts_file, SIGNAL(triggered()), this, SLOT(start_request()));
+	connect(ui->actionDownload_DMR_ID_List, SIGNAL(triggered()), this, SLOT(download_dmrid_list()));
 	connect(ui->connectButton, SIGNAL(clicked()), this, SLOT(process_connect()));
 	ui->statusBar->insertPermanentWidget(0, status_txt, 1);
 	ui->callsignEdit->setMaximumWidth(60);
@@ -144,6 +144,11 @@ void DudeStarRX::init_gui()
 
 	ui->hostCombo->setEditable(true);
 	ui->dmrtgEdit->setEnabled(false);
+}
+
+void DudeStarRX::download_dmrid_list()
+{
+	start_request("/dmrids.txt");
 }
 
 void DudeStarRX::start_request(QString f)
@@ -934,7 +939,6 @@ void DudeStarRX::readyReadDMR()
 	CSHA256 sha256;
 	char buffer[400U];
 
-	static bool first_tx = false;
 	buf.resize(udp->pendingDatagramSize());
 	udp->readDatagram(buf.data(), buf.size(), &sender, &senderPort);
 #ifdef DEBUG
