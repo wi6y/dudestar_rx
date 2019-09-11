@@ -307,6 +307,7 @@ void DudeStarRX::process_ref_hosts()
 
 	QFileInfo check_file(config_path + "/dplus.txt");
 	if(check_file.exists() && check_file.isFile()){
+		ui->hostCombo->blockSignals(true);
 		QFile f(config_path + "/dplus.txt");
 		if(f.open(QIODevice::ReadOnly)){
 			ui->hostCombo->clear();
@@ -322,6 +323,7 @@ void DudeStarRX::process_ref_hosts()
 		f.close();
 		int i = ui->hostCombo->findText(saved_refhost);
 		ui->hostCombo->setCurrentIndex(i);
+		ui->hostCombo->blockSignals(false);
 	}
 	else{
 		QMessageBox::StandardButton reply;
@@ -340,6 +342,7 @@ void DudeStarRX::process_dcs_hosts()
 
 	QFileInfo check_file(config_path + "/dcs.txt");
 	if(check_file.exists() && check_file.isFile()){
+		ui->hostCombo->blockSignals(true);
 		QFile f(config_path + "/dcs.txt");
 		if(f.open(QIODevice::ReadOnly)){
 			ui->hostCombo->clear();
@@ -353,6 +356,9 @@ void DudeStarRX::process_dcs_hosts()
 			}
 		}
 		f.close();
+		int i = ui->hostCombo->findText(saved_dcshost);
+		ui->hostCombo->setCurrentIndex(i);
+		ui->hostCombo->blockSignals(false);
 	}
 	else{
 		QMessageBox::StandardButton reply;
@@ -372,6 +378,7 @@ void DudeStarRX::process_xrf_hosts()
 
 	QFileInfo check_file(config_path + "/dextra.txt");
 	if(check_file.exists() && check_file.isFile()){
+		ui->hostCombo->blockSignals(true);
 		QFile f(config_path + "/dextra.txt");
 		if(f.open(QIODevice::ReadOnly)){
 			ui->hostCombo->clear();
@@ -385,6 +392,9 @@ void DudeStarRX::process_xrf_hosts()
 			}
 		}
 		f.close();
+		int i = ui->hostCombo->findText(saved_xrfhost);
+		ui->hostCombo->setCurrentIndex(i);
+		ui->hostCombo->blockSignals(false);
 	}
 	else{
 		QMessageBox::StandardButton reply;
@@ -404,6 +414,7 @@ void DudeStarRX::process_ysf_hosts()
 
 	QFileInfo check_file(config_path + "/YSFHosts.txt");
 	if(check_file.exists() && check_file.isFile()){
+		ui->hostCombo->blockSignals(true);
 		QFile f(config_path + "/YSFHosts.txt");
 		if(f.open(QIODevice::ReadOnly)){
 			ui->hostCombo->clear();
@@ -414,6 +425,9 @@ void DudeStarRX::process_ysf_hosts()
 			}
 		}
 		f.close();
+		int i = ui->hostCombo->findText(saved_ysfhost);
+		ui->hostCombo->setCurrentIndex(i);
+		ui->hostCombo->blockSignals(false);
 	}
 	else{
 		QMessageBox::StandardButton reply;
@@ -432,6 +446,7 @@ void DudeStarRX::process_dmr_hosts()
 
 	QFileInfo check_file(config_path + "/DMRHosts.txt");
 	if(check_file.exists() && check_file.isFile()){
+		ui->hostCombo->blockSignals(true);
 		QFile f(config_path + "/DMRHosts.txt");
 		if(f.open(QIODevice::ReadOnly)){
 			ui->hostCombo->clear();
@@ -448,6 +463,10 @@ void DudeStarRX::process_dmr_hosts()
 			}
 		}
 		f.close();
+		//qDebug() << "saved_dmrHost == " << saved_dmrhost;
+		int i = ui->hostCombo->findText(saved_dmrhost);
+		ui->hostCombo->setCurrentIndex(i);
+		ui->hostCombo->blockSignals(false);
 	}
 	else{
 		QMessageBox::StandardButton reply;
@@ -517,6 +536,7 @@ void DudeStarRX::process_settings()
 						process_dmr_hosts();
 					}
 				}
+				ui->hostCombo->blockSignals(true);
 				if(sl.at(0) == "REFHOST"){
 					saved_refhost = sl.at(1).simplified();
 					if(ui->modeCombo->currentText().simplified() == "REF"){
@@ -561,6 +581,7 @@ void DudeStarRX::process_settings()
 				if(sl.at(0) == "DMRTGID"){
 					ui->dmrtgEdit->setText(sl.at(1).simplified());
 				}
+				ui->hostCombo->blockSignals(false);
 			}
 		}
 	}

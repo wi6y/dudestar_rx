@@ -17,6 +17,8 @@
 #include "ysf.h"
 #include "mbefec.h"
 
+#define DEBUG
+
 const int DSDYSF::m_fichInterleave[100] = {
         0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95,
         1, 6, 11, 16, 21, 26, 31, 36, 41, 46, 51, 56, 61, 66, 71, 76, 81, 86, 91, 96,
@@ -345,7 +347,9 @@ void DSDYSF::processFICH(int symbolIndex, unsigned char dibit)
             }
             else
             {
+#ifdef DEBUG
                 std::cerr << "DSDYSF::processFICH: Golay KO #" << i << std::endl;
+#endif
                 m_fichError = FICHErrorGolay;
                 break;
             }
@@ -356,12 +360,16 @@ void DSDYSF::processFICH(int symbolIndex, unsigned char dibit)
             if (checkCRC16(m_fichBits, 4))
             {
                 m_fich.setBytes(m_fichBits);
+#ifdef DEBUG
 				std::cerr << "DSDYSF::processFICH: CRC OK: " << m_fich << std::endl;
+#endif
                 m_fichError = FICHNoError;
             }
             else
             {
+#ifdef DEBUG
                 std::cerr << "DSDYSF::processFICH: CRC KO" << std::endl;
+#endif
                 m_fichError = FICHErrorCRC;
             }
         }
@@ -424,7 +432,9 @@ void DSDYSF::processHeader(int symbolIndex, unsigned char dibit)
         }
         else
         {
+#ifdef DEBUG
             std::cerr << "DSDYSF::processHeader: DCH1 CRC KO" << std::endl;
+#endif
         }
 
         if (checkCRC16(m_dch2Bits, 20, bytes)) // CSD2
@@ -433,7 +443,9 @@ void DSDYSF::processHeader(int symbolIndex, unsigned char dibit)
         }
         else
         {
+#ifdef DEBUG
             std::cerr << "DSDYSF::processHeader: DCH2 CRC KO" << std::endl;
+#endif
         }
 
         m_vfrStart = m_fich.getFrameInformation() == FIHeader;
@@ -448,7 +460,9 @@ void DSDYSF::processCSD1(unsigned char *dchBytes)
         m_destId[5] = '\0';
         memcpy(m_srcId, &dchBytes[5], 5);
         m_destId[5] = '\0';
+#ifdef DEBUG
         std::cerr << "DSDYSF::processCSD1: CM: 1 Dest: " << m_destId << " Src: " << m_srcId << std::endl;
+#endif
     }
     else
     {
@@ -456,7 +470,9 @@ void DSDYSF::processCSD1(unsigned char *dchBytes)
         m_dest[10] = '\0';
         memcpy(m_src, &dchBytes[10], 10);
         m_src[10] = '\0';
+#ifdef DEBUG
 		std::cerr << "DSDYSF::processCSD1: CM: 0 Dest: " << m_dest << " Src: " << m_src << std::endl;
+#endif
     }
 }
 
@@ -466,7 +482,9 @@ void DSDYSF::processCSD2(unsigned char *dchBytes)
     m_downlink[10] = '\0';
     memcpy(m_uplink, &dchBytes[10], 10);
     m_uplink[10] = '\0';
+#ifdef DEBUG
 	std::cerr << "DSDYSF::processCSD2:  D/L: " << m_downlink << " U/L: " << m_uplink << std::endl;
+#endif
 }
 
 void DSDYSF::processCSD3_1(unsigned char *dchBytes)
@@ -475,8 +493,10 @@ void DSDYSF::processCSD3_1(unsigned char *dchBytes)
     m_rem1[5] = '\0';
     memcpy(m_rem2, &dchBytes[5], 5);
     m_rem2[5] = '\0';
+#ifdef DEBUG
 	std::cerr << "DSDYSF::processCSD3_1: Rem1: " << m_rem1 << std::endl;
 	std::cerr << "DSDYSF::processCSD3_1: Rem2: " << m_rem2 << std::endl;
+#endif
 }
 
 void DSDYSF::processCSD3_2(unsigned char *dchBytes)
@@ -485,8 +505,10 @@ void DSDYSF::processCSD3_2(unsigned char *dchBytes)
     m_rem3[5] = '\0';
     memcpy(m_rem4, &dchBytes[5], 5);
     m_rem4[5] = '\0';
+#ifdef DEBUG
 	std::cerr << "DSDYSF::processCSD3_2: Rem3: " << m_rem3 << std::endl;
 	std::cerr << "DSDYSF::processCSD3_2: Rem4: " << m_rem4 << std::endl;
+#endif
 }
 
 void DSDYSF::processVD1(int symbolIndex, unsigned char dibit)
@@ -610,22 +632,30 @@ void DSDYSF::processVD2(int symbolIndex, unsigned char dibit)
                 case 0:
                     memcpy(m_dest, bytes, 10);
                     m_dest[10] = '\0';
+#ifdef DEBUG
 					std::cerr << "DSDYSF::processVD2: Dest: " << m_dest << std::endl;
+#endif
                     break;
                 case 1:
                     memcpy(m_src, bytes, 10);
                     m_src[10] = '\0';
+#ifdef DEBUG
 					std::cerr << "DSDYSF::processVD2:  Src: " << m_src << std::endl;
+#endif
                     break;
                 case 2:
                     memcpy(m_downlink, bytes, 10);
                     m_downlink[10] = '\0';
+#ifdef DEBUG
 					std::cerr << "DSDYSF::processVD2:  D/L: " << m_downlink << std::endl;
+#endif
                     break;
                 case 3:
                     memcpy(m_uplink, bytes, 10);
                     m_uplink[10] = '\0';
+#ifdef DEBUG
 					std::cerr << "DSDYSF::processVD2:  U/L: " << m_uplink << std::endl;
+#endif
                     break;
                 case 4:
                     processCSD3_1(bytes);
@@ -633,6 +663,20 @@ void DSDYSF::processVD2(int symbolIndex, unsigned char dibit)
                 case 5:
                     processCSD3_2(bytes);
                     break;
+				case 6:
+				case 7:
+					char mystery[11];
+					memcpy(mystery, bytes, 10);
+					mystery[10] = '\0';
+#ifdef DEBUG
+					std::cerr << "Mystery frame " << (int)m_fich.getFrameNumber()<< ":";
+					for(int i = 0; i < 10; ++i){
+						fprintf(stderr, "%02x ", (unsigned char)bytes[i]);
+					}
+					fprintf(stderr, "\n");
+					fflush(stderr);
+#endif
+					break;
                 default:
                     break;
                 }
@@ -670,7 +714,9 @@ void DSDYSF::processVD2Voice(int mbeIndex, unsigned char dibit)
         unsigned int bit;
 
         if (m_vd2BitsRaw[103] != 0) {
+#ifdef DEBUG
             std::cerr << "DSDYSF::processVD2Voice: error bit 103" << std::endl;
+#endif
         }
 
         for (int i = 0; i < 103; i++)
