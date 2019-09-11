@@ -63,6 +63,11 @@ private:
 	QString callsign;
 	QString serial;
 	QString dmr_password;
+	QString saved_refhost;
+	QString saved_dcshost;
+	QString saved_xrfhost;
+	QString saved_ysfhost;
+	QString saved_dmrhost;
 	char module;
 	uint32_t dmrid;
 	uint32_t dmr_srcid;
@@ -108,6 +113,7 @@ private slots:
 	void process_dmr_hosts();
 	void process_dmr_ids();
 	void process_mode_change(const QString &);
+	void process_host_change(const QString &);
 	void process_settings();
 	void process_ping();
 	void load_hosts_file();

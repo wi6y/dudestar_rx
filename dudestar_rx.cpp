@@ -94,7 +94,11 @@ DudeStarRX::~DudeStarRX()
 	f.open(QIODevice::WriteOnly);
 	QTextStream stream(&f);
 	stream << "MODE:" << ui->modeCombo->currentText() << endl;
-	stream << "HOST:" << ui->hostCombo->currentText() << endl;
+	stream << "REFHOST:" << saved_refhost << endl;
+	stream << "DCSHOST:" << saved_dcshost << endl;
+	stream << "XRFHOST:" << saved_xrfhost << endl;
+	stream << "YSFHOST:" << saved_ysfhost << endl;
+	stream << "DMRHOST:" << saved_dmrhost << endl;
 	stream << "MODULE:" << ui->comboMod->currentText() << endl;
 	stream << "CALLSIGN:" << ui->callsignEdit->text() << endl;
 	stream << "DMRTGID:" << ui->dmrtgEdit->text() << endl;
@@ -137,6 +141,7 @@ void DudeStarRX::init_gui()
 	ui->modeCombo->addItem("YSF");
 	ui->modeCombo->addItem("DMR");
 	connect(ui->modeCombo, SIGNAL(currentTextChanged(const QString &)), this, SLOT(process_mode_change(const QString &)));
+	connect(ui->hostCombo, SIGNAL(currentTextChanged(const QString &)), this, SLOT(process_host_change(const QString &)));
 
 	for(char m = 0x41; m < 0x5b; ++m){
 		ui->comboMod->addItem(QString(m));
@@ -212,6 +217,25 @@ void DudeStarRX::load_hosts_file()
 
 		QFile::copy(s, config_path + "/hosts");
 		process_ref_hosts();
+	}
+}
+
+void DudeStarRX::process_host_change(const QString &h)
+{
+	if(ui->modeCombo->currentText().simplified() == "REF"){
+		saved_refhost = h.simplified();
+	}
+	if(ui->modeCombo->currentText().simplified() == "DCS"){
+		saved_dcshost = h.simplified();
+	}
+	if(ui->modeCombo->currentText().simplified() == "XRF"){
+		saved_xrfhost = h.simplified();
+	}
+	if(ui->modeCombo->currentText().simplified() == "YSF"){
+		saved_ysfhost = h.simplified();
+	}
+	if(ui->modeCombo->currentText().simplified() == "DMR"){
+		saved_dmrhost = h.simplified();
 	}
 }
 
@@ -296,6 +320,8 @@ void DudeStarRX::process_ref_hosts()
 			}
 		}
 		f.close();
+		int i = ui->hostCombo->findText(saved_refhost);
+		ui->hostCombo->setCurrentIndex(i);
 	}
 	else{
 		QMessageBox::StandardButton reply;
@@ -491,10 +517,40 @@ void DudeStarRX::process_settings()
 						process_dmr_hosts();
 					}
 				}
-
-				if(sl.at(0) == "HOST"){
-					int i = ui->hostCombo->findText(sl.at(1).simplified());
-					ui->hostCombo->setCurrentIndex(i);
+				if(sl.at(0) == "REFHOST"){
+					saved_refhost = sl.at(1).simplified();
+					if(ui->modeCombo->currentText().simplified() == "REF"){
+						int i = ui->hostCombo->findText(saved_refhost);
+						ui->hostCombo->setCurrentIndex(i);
+					}
+				}
+				if(sl.at(0) == "DCSHOST"){
+					saved_dcshost = sl.at(1).simplified();
+					if(ui->modeCombo->currentText().simplified() == "DCS"){
+						int i = ui->hostCombo->findText(saved_dcshost);
+						ui->hostCombo->setCurrentIndex(i);
+					}
+				}
+				if(sl.at(0) == "XRFHOST"){
+					saved_xrfhost = sl.at(1).simplified();
+					if(ui->modeCombo->currentText().simplified() == "XRF"){
+						int i = ui->hostCombo->findText(saved_xrfhost);
+						ui->hostCombo->setCurrentIndex(i);
+					}
+				}
+				if(sl.at(0) == "YSFHOST"){
+					saved_ysfhost = sl.at(1).simplified();
+					if(ui->modeCombo->currentText().simplified() == "YSF"){
+						int i = ui->hostCombo->findText(saved_ysfhost);
+						ui->hostCombo->setCurrentIndex(i);
+					}
+				}
+				if(sl.at(0) == "DMRHOST"){
+					saved_dmrhost = sl.at(1).simplified();
+					if(ui->modeCombo->currentText().simplified() == "DMR"){
+						int i = ui->hostCombo->findText(saved_dmrhost);
+						ui->hostCombo->setCurrentIndex(i);
+					}
 				}
 				if(sl.at(0) == "MODULE"){
 					ui->comboMod->setCurrentText(sl.at(1).simplified());
