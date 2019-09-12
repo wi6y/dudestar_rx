@@ -670,6 +670,9 @@ void DudeStarRX::process_connect()
 		ui->modeCombo->setEnabled(true);
 		ui->hostCombo->setEnabled(true);
 		ui->callsignEdit->setEnabled(true);
+		if((protocol == "DCS") || (protocol == "XRF")){
+			ui->comboMod->setEnabled(true);
+		}
 		disconnect_from_host();
 		status_txt->setText("Not connected");
 	}
