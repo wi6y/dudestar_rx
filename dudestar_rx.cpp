@@ -40,7 +40,9 @@ DudeStarRX::DudeStarRX(QWidget *parent) :
 	ui->setupUi(this);
 	init_gui();
 	config_path = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation);
+#ifdef Q_OS_UNIX
 	config_path += "/dudestar_rx";
+#endif
 	connect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(http_finished(QNetworkReply*)));
 
 	QAudioFormat format;
@@ -787,7 +789,7 @@ void DudeStarRX::process_audio()
 
 void DudeStarRX::AppendVoiceLCToBuffer(QByteArray& buffer, uint32_t uiSrcId, uint32_t uiDstId) const
 {
-	uint8_t g_DmrSyncBSData[]     = { 0x0D,0xFF,0x57,0xD7,0x5D,0xF5,0xD0 };
+	//uint8_t g_DmrSyncBSData[]     = { 0x0D,0xFF,0x57,0xD7,0x5D,0xF5,0xD0 };
 	uint8_t g_DmrSyncMSData[]     = { 0x0D,0x5D,0x7F,0x77,0xFD,0x75,0x70 };
 	uint8_t payload[33];
 
@@ -839,13 +841,6 @@ void DudeStarRX::tx_dmr_header()
 {
 	QByteArray out;
 	dmr_destid = ui->dmrtgEdit->text().toInt();
-	unsigned char dmrheader_tx[55] = {
-		0x44, 0x4D, 0x52, 0x44, 0x00, 0x2F, 0xB4, 0xD2, 0x00, 0x00, 0x5B, 0x00, 0x2F, 0xB4, 0xD2, 0xA1,
-		0xE9, 0xF5, 0x3A, 0x3A, 0x02, 0x46, 0x0C, 0x3C, 0x1E, 0xA4, 0x12, 0x20, 0x5F, 0x20, 0x04, 0x40,
-		0x44, 0x6D, 0x5D, 0x7F, 0x77, 0xFD, 0x75, 0x7E, 0x33, 0x00, 0x00, 0xD0, 0x31, 0x20, 0x36, 0x40,
-		0x1D, 0x81, 0xE8, 0x03, 0x84, 0x00, 0x00
-	};
-	//out.append((char *)dmrheader_tx, 55);
 
 	out.append("DMRD", 4);
 	out.append('\0');
@@ -1107,7 +1102,7 @@ void DudeStarRX::readyReadDMR()
 		memcpy(dmr3ambe, dmrframe, 14);
 		dmr3ambe[13] &= 0xF0;
 		dmr3ambe[13] |= (dmrframe[19] & 0x0F);
-		memcpy(&dmr3ambe[14], &dmrframe[20], 14);
+		memcpy(&dmr3ambe[14], &dmrframe[20], 13);
 		// extract sync
 		dmrsync[0] = dmrframe[13] & 0x0F;
 		::memcpy(&dmrsync[1], &dmrframe[14], 5);
@@ -1115,11 +1110,11 @@ void DudeStarRX::readyReadDMR()
 		for(int i = 0; i < 27; ++i){
 			audioq.enqueue(dmr3ambe[i]);
 		}
-		uint32_t id = (uint32_t)((buf.data()[5] << 16) | ((buf.data()[6] << 8) & 0xff00) | (buf.data()[7]) & 0xff);
+		uint32_t id = (uint32_t)((buf.data()[5] << 16) | ((buf.data()[6] << 8) & 0xff00) | ((buf.data()[7]) & 0xff));
 		ui->mycall->setText(dmrids[id]);
 		ui->urcall->setText(QString::number(id));
-		ui->rptr1->setText(QString::number((uint32_t)((buf.data()[8] << 16) | ((buf.data()[9] << 8) & 0xff00) | (buf.data()[10]) & 0xff)));
-		ui->rptr2->setText(QString::number((uint32_t)((buf.data()[11] << 24) | ((buf.data()[12] << 16) & 0xff0000) | ((buf.data()[13] << 8) & 0xff00) | (buf.data()[14]) & 0xff)));
+		ui->rptr1->setText(QString::number((uint32_t)((buf.data()[8] << 16) | ((buf.data()[9] << 8) & 0xff00) | ((buf.data()[10]) & 0xff))));
+		ui->rptr2->setText(QString::number((uint32_t)((buf.data()[11] << 24) | ((buf.data()[12] << 16) & 0xff0000) | ((buf.data()[13] << 8) & 0xff00) | ((buf.data()[14]) & 0xff))));
 		ui->streamid->setText(QString::number(buf.data()[4] & 0xff, 16));
 	}
 

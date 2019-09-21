@@ -65,6 +65,9 @@ win32:QMAKE_LFLAGS += -static
 
 QMAKE_LFLAGS_WINDOWS += --enable-stdcall-fixup
 
+# Location for libmbe.a on Windows
+win32:LIBS += -LC:\Qt\5.13.1\mingw73_32_static\lib
+
 LIBS += -lmbe
 
 RC_ICONS = images/dstar.ico
